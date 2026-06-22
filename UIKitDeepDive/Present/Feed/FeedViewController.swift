@@ -11,12 +11,18 @@ class FeedViewController: UIViewController {
     
     enum Section: Hashable {
         case main
+        case loader
     }
     
     // MARK: - Properties
     
     private var posts: [Post] = []
     private var users: [User] = []
+    
+    private var currentPage = 1
+    private let pageSize = 20
+    private var isLoading = false
+    private var hasMorePages = true
     
     private var dataSource: UITableViewDiffableDataSource<Section, FeedItem>!
     
@@ -42,7 +48,7 @@ class FeedViewController: UIViewController {
         setupUI()
         setupTableView()
         configureDataSource()
-        fetchData()
+        fetchData(page: 1)
     }
     
     // MARK: - Setup
@@ -67,6 +73,8 @@ class FeedViewController: UIViewController {
     private func setupTableView() {
         tableView.register(PostCell.self, forCellReuseIdentifier: PostCell.reuseIdentifier)
         tableView.register(ImagePostCell.self, forCellReuseIdentifier: ImagePostCell.reuseIdentifier)
+        tableView.register(LoadingCell.self, forCellReuseIdentifier: LoadingCell.reuseIdentifier)
+        
         tableView.delegate = self
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 150
@@ -98,6 +106,14 @@ class FeedViewController: UIViewController {
                 
                 cell.configure(with: post, authorName: self.authorName(for: post.userId))
                 return cell
+                
+            case .loading:
+                guard let cell = tableView.dequeueReusableCell(
+                    withIdentifier: LoadingCell.reuseIdentifier,
+                    for: indexPath
+                ) as? LoadingCell else { return UITableViewCell() }
+                
+                return cell
             }
         }
     }
@@ -117,36 +133,75 @@ class FeedViewController: UIViewController {
         }
         
         snapshot.appendItems(feedItems, toSection: .main)
+        
+        if hasMorePages {
+            snapshot.appendSections([.loader])
+            snapshot.appendItems([.loading], toSection: .loader)
+        }
+        
         dataSource.apply(snapshot, animatingDifferences: animatingDifferences)
     }
     
     // MARK: - Data Fetching
     
-    private func fetchData() {
-        activityIndicator.startAnimating()
-        tableView.isHidden = true
+    private func fetchData(page: Int) {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        if page == 1 {
+            activityIndicator.startAnimating()
+            tableView.isHidden = true
+        }
         
         Task {
             do {
-                async let fetchedPosts: [Post] = NetworkManager.shared.fetch(.posts(page: 1, limit: 30))
-                async let fetchedUsers: [User] = NetworkManager.shared.fetch(.users)
-                
-                let (postsResult, userResult) = try await (fetchedPosts, fetchedUsers)
-                
-                await MainActor.run {
-                    self.posts = postsResult
-                    self.users = userResult
-                    self.applySnapshot(animatingDifferences: false)
-                    self.activityIndicator.stopAnimating()
-                    self.tableView.isHidden = false
+                if page == 1 {
+                    async let fetchedPosts: [Post] = NetworkManager.shared.fetch(.posts(page: page, limit: pageSize))
+                    async let fetchedUsers: [User] = NetworkManager.shared.fetch(.users)
+                    
+                    let (postsResult, userResult) = try await (fetchedPosts, fetchedUsers)
+                    
+                    await MainActor.run {
+                        self.users = userResult
+                        self.handlePostsResponse(postsResult, page: page)
+                    }
+                } else {
+                    let newPosts: [Post] = try await NetworkManager.shared.fetch(.posts(page: page, limit: pageSize))
+                    
+                    await MainActor.run {
+                        self.handlePostsResponse(newPosts, page: page)
+                    }
                 }
+                
             } catch {
                 await MainActor.run {
+                    self.isLoading = false
                     self.activityIndicator.stopAnimating()
+                    self.tableView.isHidden = false
                     self.showErrorAlert(error)
                 }
             }
         }
+    }
+    
+    private func handlePostsResponse(_ newPosts: [Post], page: Int) {
+        if newPosts.count < pageSize {
+            hasMorePages = false
+        }
+        
+        if page == 1 {
+            posts = newPosts
+        } else {
+            posts.append(contentsOf: newPosts)
+        }
+        
+        currentPage = page
+        isLoading = false
+        
+        applySnapshot(animatingDifferences: page != 1)
+        
+        activityIndicator.stopAnimating()
+        tableView.isHidden = false
     }
     
     // MARK: - Helpers
@@ -162,7 +217,8 @@ class FeedViewController: UIViewController {
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "재시도", style: .default) { [weak self] _ in
-            self?.fetchData()
+            guard let self else { return }
+            self.fetchData(page: self.currentPage + 1)
         })
         alert.addAction(UIAlertAction(title: "확인", style: .cancel))
         present(alert, animated: true)
@@ -183,6 +239,19 @@ extension FeedViewController: UITableViewDelegate {
             print("텍스트 포스트 선택: \(post.title)")
         case .imagePost(let post):
             print("이미지 포스트 선택: \(post.title)")
+        case .loading:
+            break
+        }
+    }
+    
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offsetY = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let frameHeight = scrollView.frame.size.height
+        
+        if offsetY > contentHeight - frameHeight - 200 {
+            guard hasMorePages, !isLoading else { return }
+            fetchData(page: currentPage + 1)
         }
     }
 }

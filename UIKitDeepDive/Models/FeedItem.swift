@@ -10,11 +10,14 @@ import Foundation
 enum FeedItem: Hashable {
     case textPost(Post)
     case imagePost(Post)
+    case loading
     
     func hash(into hasher: inout Hasher) {
         switch self {
         case .textPost(let post), .imagePost(let post):
             hasher.combine(post.id)
+        case .loading:
+            hasher.combine("loading")
         }
     }
     
@@ -24,6 +27,8 @@ enum FeedItem: Hashable {
             return a == b
         case (.imagePost(let a), .imagePost(let b)):
             return a == b
+        case (.loading, .loading):
+            return true
         default:
             return false
         }
