@@ -80,6 +80,11 @@ class ImagePostCell: UITableViewCell {
         bodyLabel.translatesAutoresizingMaskIntoConstraints = false
         statsLabel.translatesAutoresizingMaskIntoConstraints = false
         
+        let bottomConstraint = statsLabel.bottomAnchor.constraint(
+            equalTo: contentView.bottomAnchor, constant: -12
+        )
+        bottomConstraint.priority = UILayoutPriority(999)
+        
         NSLayoutConstraint.activate([
             authorLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             authorLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -101,7 +106,7 @@ class ImagePostCell: UITableViewCell {
             statsLabel.topAnchor.constraint(equalTo: bodyLabel.bottomAnchor, constant: 6),
             statsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             statsLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            statsLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
+            bottomConstraint
         ])
     }
     

@@ -89,7 +89,8 @@ class FeedViewController: UIViewController {
             guard let self else { return UITableViewCell() }
             
             switch feedItem {
-            case .textPost(let post):
+            case .textPost(let snapshotPost):
+                let post = self.posts.first { $0.id == snapshotPost.id } ?? snapshotPost
                 guard let cell = tableView.dequeueReusableCell(
                     withIdentifier: PostCell.reuseIdentifier,
                     for: indexPath
@@ -98,7 +99,8 @@ class FeedViewController: UIViewController {
                 cell.configure(with: post, authorName: self.authorName(for: post.userId))
                 return cell
                 
-            case .imagePost(let post):
+            case .imagePost(let snapshotPost):
+                let post = self.posts.first { $0.id == snapshotPost.id } ?? snapshotPost
                 guard let cell = tableView.dequeueReusableCell(
                     withIdentifier: ImagePostCell.reuseIdentifier,
                     for: indexPath
@@ -253,5 +255,123 @@ extension FeedViewController: UITableViewDelegate {
             guard hasMorePages, !isLoading else { return }
             fetchData(page: currentPage + 1)
         }
+    }
+    
+    // MARK: - Trailing Swipe (← 왼쪽으로 스와이프)
+    
+    func tableView(
+        _ tableView: UITableView,
+        trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
+    ) -> UISwipeActionsConfiguration? {
+        guard let feedItem = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        
+        if case .loading = feedItem { return nil }
+        
+        let deleteAction = UIContextualAction(
+            style: .destructive,
+            title: "삭제"
+        ) { [weak self] _, _, completionHandler in
+            guard let self else { return }
+            self.deleteItem(feedItem)
+            completionHandler(true)
+        }
+        deleteAction.image = UIImage(systemName: "trash")
+        
+        let moreAction = UIContextualAction(style: .normal, title: "더보기") { [weak self] _, _, completionHandler in
+            guard let self else { return }
+            self.showMoreOptions(for: feedItem)
+            completionHandler(true)
+        }
+        
+        moreAction.backgroundColor = .systemGray
+        moreAction.image = UIImage(systemName: "ellipsis.circle")
+        
+        let config = UISwipeActionsConfiguration(actions: [deleteAction, moreAction])
+        config.performsFirstActionWithFullSwipe = false
+        return config
+    }
+    
+    // MARK: - Leading Swipe (→ 오른쪽으로 스와이프)
+    
+    func tableView(
+        _ tableView: UITableView,
+        leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath
+    ) -> UISwipeActionsConfiguration? {
+        guard let feedItem = dataSource.itemIdentifier(for: indexPath) else { return nil }
+        if case .loading = feedItem { return nil }
+        
+        let snapshotPost: Post
+        switch feedItem {
+        case .textPost(let p), .imagePost(let p):
+            snapshotPost = p
+        case .loading:
+            return nil
+        }
+        
+        guard let post = posts.first(where: { $0.id == snapshotPost.id }) else { return nil }
+        
+        let bookmarkAction = UIContextualAction(
+            style: .normal,
+            title: post.isBookmarked ? "해제" : "북마크"
+        ) { [weak self] _, _, completionHandler in
+            guard let self else { return }
+            self.toggleBookmark(for: post)
+            completionHandler(true)
+        }
+        bookmarkAction.image = UIImage(
+            systemName: post.isBookmarked ? "bookmark.slash" : "bookmark.fill"
+        )
+        bookmarkAction.backgroundColor = post.isBookmarked ? .systemGray : .systemOrange
+        
+        let config = UISwipeActionsConfiguration(actions: [bookmarkAction])
+        config.performsFirstActionWithFullSwipe = false
+        return config
+    }
+    
+    // MARK: - Swipe Action Helpers
+    
+    private func deleteItem(_ feedItem: FeedItem) {
+        switch feedItem {
+        case .textPost(let post), .imagePost(let post):
+            posts.removeAll { $0.id == post.id }
+        case .loading:
+            return
+        }
+        
+        var snapshot = dataSource.snapshot()
+        snapshot.deleteItems([feedItem])
+        dataSource.apply(snapshot, animatingDifferences: true)
+    }
+    
+    private func toggleBookmark(for post: Post) {
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+        posts[index].isBookmarked.toggle()
+        
+        let feedItem: FeedItem = post.id % 3 == 0 ? .imagePost(post) : .textPost(post)
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems([feedItem])
+        dataSource.apply(snapshot, animatingDifferences: true)
+    }
+    
+    private func showMoreOptions(for feedItem: FeedItem) {
+        let post: Post
+        switch feedItem {
+        case .textPost(let p), .imagePost(let p):
+            post = p
+        case .loading:
+            return
+        }
+        
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        
+        alert.addAction(UIAlertAction(title: "공유", style: .default) { _ in
+            print("공유: \(post.title)")
+        })
+        alert.addAction(UIAlertAction(title: "신고", style: .destructive) { _ in
+            print("신고: \(post.title)")
+        })
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        
+        present(alert, animated: true)
     }
 }

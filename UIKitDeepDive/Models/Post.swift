@@ -13,7 +13,19 @@ struct Post: Codable, Hashable {
     let title: String
     let body: String
     
+    var isBookmarked: Bool = false
+    
+    enum CodingKeys: String, CodingKey {
+        case userId, id, title, body
+    }
+    
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+    
+    static func == (lhs: Post, rhs: Post) -> Bool {
+        lhs.id == rhs.id
+        && lhs.title == rhs.title
+        && lhs.body == rhs.body
     }
 }
