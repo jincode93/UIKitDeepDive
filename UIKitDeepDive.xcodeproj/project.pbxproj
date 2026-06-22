@@ -34,30 +34,16 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				"Utils/DateFormmater+.swift",
-				"Utils/UIColor+.swift",
 			);
 			target = 52C1E41B2FE9122F00678E70 /* UIKitDeepDive */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		52C1E4772FE9263000678E70 /* Exceptions for "UIKitDeepDive" folder in "Copy Bundle Resources" phase from "UIKitDeepDive" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 52C1E41A2FE9122F00678E70 /* Resources */;
-			membershipExceptions = (
-				"Utils/DateFormmater+.swift",
-				"Utils/UIColor+.swift",
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		52C1E41E2FE9122F00678E70 /* UIKitDeepDive */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				52C1E4442FE9123000678E70 /* Exceptions for "UIKitDeepDive" folder in "UIKitDeepDive" target */,
-				52C1E4772FE9263000678E70 /* Exceptions for "UIKitDeepDive" folder in "Copy Bundle Resources" phase from "UIKitDeepDive" target */,
 			);
 			path = UIKitDeepDive;
 			sourceTree = "<group>";
@@ -322,7 +308,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -356,7 +342,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
