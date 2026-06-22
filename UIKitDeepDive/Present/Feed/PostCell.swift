@@ -36,18 +36,6 @@ class PostCell: UITableViewCell {
         return label
     }()
     
-    private let postImageView: UIImageView = {
-        let image = UIImageView()
-        image.translatesAutoresizingMaskIntoConstraints = false
-        image.contentMode = .scaleAspectFill
-        image.clipsToBounds = true
-        image.layer.cornerRadius = 8
-        image.backgroundColor = .randomPastel()
-        return image
-    }()
-    
-    private var imageHeightConstraint: NSLayoutConstraint!
-    
     private let statsLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12)
@@ -69,32 +57,18 @@ class PostCell: UITableViewCell {
     // MARK: - Setup
     
     private func setupUI() {
-        let textStack = UIStackView(arrangedSubviews: [authorLabel, titleLabel, bodyLabel])
-        textStack.axis = .vertical
-        textStack.spacing = 6
-        textStack.translatesAutoresizingMaskIntoConstraints = false
+        let stackView = UIStackView(arrangedSubviews: [authorLabel, titleLabel, bodyLabel, statsLabel])
+        stackView.axis = .vertical
+        stackView.spacing = 6
+        stackView.translatesAutoresizingMaskIntoConstraints = false
         
-        contentView.addSubview(textStack)
-        contentView.addSubview(postImageView)
-        contentView.addSubview(statsLabel)
-        statsLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        imageHeightConstraint = postImageView.heightAnchor.constraint(equalToConstant: 0)
+        contentView.addSubview(stackView)
         
         NSLayoutConstraint.activate([
-            textStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-            textStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            textStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            
-            postImageView.topAnchor.constraint(equalTo: textStack.bottomAnchor, constant: 8),
-            postImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            postImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            imageHeightConstraint,
-            
-            statsLabel.topAnchor.constraint(equalTo: postImageView.bottomAnchor, constant: 8),
-            statsLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            statsLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            statsLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12),
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            stackView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
         ])
     }
     
@@ -104,18 +78,7 @@ class PostCell: UITableViewCell {
         authorLabel.text = authorName
         titleLabel.text = post.title
         bodyLabel.text = post.body
-        
-        let hasImage = post.id % 3 == 0
-        if hasImage {
-            imageHeightConstraint.constant = 200
-            postImageView.backgroundColor = .randomPastel()
-            postImageView.isHidden = false
-        } else {
-            imageHeightConstraint.constant = 0
-            postImageView.isHidden = true
-        }
-        
-        statsLabel.text = "댓글 · 포스트 #\(post.id)"
+        statsLabel.text = "포스트 #\(post.id)"
     }
     
     override func prepareForReuse() {
@@ -124,7 +87,5 @@ class PostCell: UITableViewCell {
         titleLabel.text = nil
         bodyLabel.text = nil
         statsLabel.text = nil
-        postImageView.backgroundColor = .randomPastel()
-        imageHeightConstraint.constant = 0
     }
 }

@@ -18,7 +18,7 @@ class FeedViewController: UIViewController {
     private var posts: [Post] = []
     private var users: [User] = []
     
-    private var dataSource: UITableViewDiffableDataSource<Section, Post>!
+    private var dataSource: UITableViewDiffableDataSource<Section, FeedItem>!
     
     // MARK: - UI Components
     
@@ -66,36 +66,57 @@ class FeedViewController: UIViewController {
     
     private func setupTableView() {
         tableView.register(PostCell.self, forCellReuseIdentifier: PostCell.reuseIdentifier)
+        tableView.register(ImagePostCell.self, forCellReuseIdentifier: ImagePostCell.reuseIdentifier)
         tableView.delegate = self
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 150
-        tableView.dataSource = nil
     }
     
     // MARK: - Diffable DataSource
     
     private func configureDataSource() {
-        dataSource = UITableViewDiffableDataSource<Section, Post>(
+        dataSource = UITableViewDiffableDataSource<Section, FeedItem>(
             tableView: tableView
-        ) { [weak self] tableView, indexPath, post in
-            guard let self, let cell = tableView.dequeueReusableCell(
-                withIdentifier: PostCell.reuseIdentifier,
-                for: indexPath
-            ) as? PostCell else {
-                return UITableViewCell()
-            }
+        ) { [weak self] tableView, indexPath, feedItem in
+            guard let self else { return UITableViewCell() }
             
-            cell.configure(with: post, authorName: self.authorName(for: post.userId))
-            return cell
+            switch feedItem {
+            case .textPost(let post):
+                guard let cell = tableView.dequeueReusableCell(
+                    withIdentifier: PostCell.reuseIdentifier,
+                    for: indexPath
+                ) as? PostCell else { return UITableViewCell() }
+                
+                cell.configure(with: post, authorName: self.authorName(for: post.userId))
+                return cell
+                
+            case .imagePost(let post):
+                guard let cell = tableView.dequeueReusableCell(
+                    withIdentifier: ImagePostCell.reuseIdentifier,
+                    for: indexPath
+                ) as? ImagePostCell else { return UITableViewCell() }
+                
+                cell.configure(with: post, authorName: self.authorName(for: post.userId))
+                return cell
+            }
         }
     }
     
     // MARK: - Snapshot
     
     private func applySnapshot(animatingDifferences: Bool = true) {
-        var snapshot = NSDiffableDataSourceSnapshot<Section, Post>()
+        var snapshot = NSDiffableDataSourceSnapshot<Section, FeedItem>()
         snapshot.appendSections([.main])
-        snapshot.appendItems(posts, toSection: .main)
+        
+        let feedItems: [FeedItem] = posts.map { post in
+            if post.id % 3 == 0 {
+                return .imagePost(post)
+            } else {
+                return .textPost(post)
+            }
+        }
+        
+        snapshot.appendItems(feedItems, toSection: .main)
         dataSource.apply(snapshot, animatingDifferences: animatingDifferences)
     }
     
@@ -154,5 +175,14 @@ extension FeedViewController: UITableViewDelegate {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        
+        guard let feedItem = dataSource.itemIdentifier(for: indexPath) else { return }
+        
+        switch feedItem {
+        case .textPost(let post):
+            print("텍스트 포스트 선택: \(post.title)")
+        case .imagePost(let post):
+            print("이미지 포스트 선택: \(post.title)")
+        }
     }
 }
