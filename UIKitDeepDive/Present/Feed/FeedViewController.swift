@@ -78,6 +78,21 @@ class FeedViewController: UIViewController {
         tableView.delegate = self
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 150
+        
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+        tableView.refreshControl = refreshControl
+    }
+    
+    @objc private func handleRefresh() {
+        guard !isLoading else {
+            tableView.refreshControl?.endRefreshing()
+            return
+        }
+        
+        currentPage = 1
+        hasMorePages = true
+        fetchData(page: 1)
     }
     
     // MARK: - Diffable DataSource
@@ -150,7 +165,7 @@ class FeedViewController: UIViewController {
         guard !isLoading else { return }
         isLoading = true
         
-        if page == 1 {
+        if page == 1 && tableView.refreshControl?.isRefreshing != true {
             activityIndicator.startAnimating()
             tableView.isHidden = true
         }
@@ -166,6 +181,7 @@ class FeedViewController: UIViewController {
                     await MainActor.run {
                         self.users = userResult
                         self.handlePostsResponse(postsResult, page: page)
+                        self.tableView.refreshControl?.endRefreshing()
                     }
                 } else {
                     let newPosts: [Post] = try await NetworkManager.shared.fetch(.posts(page: page, limit: pageSize))
@@ -180,6 +196,7 @@ class FeedViewController: UIViewController {
                     self.isLoading = false
                     self.activityIndicator.stopAnimating()
                     self.tableView.isHidden = false
+                    self.tableView.refreshControl?.endRefreshing()
                     self.showErrorAlert(error)
                 }
             }
