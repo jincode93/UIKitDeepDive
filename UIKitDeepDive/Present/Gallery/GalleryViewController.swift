@@ -9,8 +9,18 @@ import UIKit
 
 class GalleryViewController: UIViewController {
     
-    enum Section {
-        case main
+    enum Section: Int, Hashable, CaseIterable {
+        case featured // 대형 배너 - 가로 스크롤
+        case trending // 중형 카드 - 가로 스크롤
+        case allPhotos // 2열 그리드 - 세로 스크롤
+        
+        var title: String {
+            switch self {
+            case .featured: return "Featured"
+            case .trending: return "Trending"
+            case .allPhotos: return "All Photos"
+            }
+        }
     }
     
     // MARK: - Properties
@@ -67,7 +77,74 @@ class GalleryViewController: UIViewController {
         collectionView.delegate = self
     }
     
+    // MARK: - Compositional Layout
+    
     private func createLayout() -> UICollectionViewLayout {
+        let layout = UICollectionViewCompositionalLayout { [weak self] sectionIndex, environment in
+            guard let self,
+                  let section = Section(rawValue: sectionIndex)
+            else {
+                return self?.createAllPhotosSection()
+            }
+            
+            switch section {
+            case .featured:
+                return self.createFeaturedSection()
+            case .trending:
+                return self.createTrendingSection()
+            case .allPhotos:
+                return self.createAllPhotosSection()
+            }
+        }
+        
+        return layout
+    }
+    
+    private func createFeaturedSection() -> NSCollectionLayoutSection {
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalHeight(1.0)
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+        
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(0.85),
+            heightDimension: .fractionalWidth(0.5)
+        )
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 16, trailing: 8)
+        
+        section.orthogonalScrollingBehavior = .groupPagingCentered
+        
+        return section
+    }
+    
+    private func createTrendingSection() -> NSCollectionLayoutSection {
+        let itemSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .fractionalHeight(1.0)
+        )
+        let item = NSCollectionLayoutItem(layoutSize: itemSize)
+        item.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+        
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(0.4),
+            heightDimension: .fractionalWidth(0.5)
+        )
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 16, trailing: 8)
+        
+        section.orthogonalScrollingBehavior = .continuous
+        
+        return section
+    }
+    
+    private func createAllPhotosSection() -> NSCollectionLayoutSection {
         let itemSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(0.5),
             heightDimension: .fractionalHeight(1.0)
@@ -77,14 +154,14 @@ class GalleryViewController: UIViewController {
         
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(1.0),
-            heightDimension: .fractionalHeight(0.55)
+            heightDimension: .fractionalWidth(0.55)
         )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
         
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         
-        return UICollectionViewCompositionalLayout(section: section)
+        return section
     }
     
     // MARK: - Diffable DataSource
@@ -107,9 +184,17 @@ class GalleryViewController: UIViewController {
     
     private func applySnapshot(animatingDifferences: Bool = true) {
         var snapshot = NSDiffableDataSourceSnapshot<Section, PicsumPhoto>()
-        snapshot.appendSections([.main])
-        snapshot.appendItems(photos, toSection: .main)
-        dataSource.apply(snapshot, animatingDifferences: animatingDifferences)
+        
+        let featured = Array(photos.prefix(5))
+        let trending = Array(photos.dropFirst(5).prefix(10))
+        let allPhotos = Array(photos.dropFirst(15))
+        
+        snapshot.appendSections([.featured, .trending, .allPhotos])
+        snapshot.appendItems(featured, toSection: .featured)
+        snapshot.appendItems(trending, toSection: .trending)
+        snapshot.appendItems(allPhotos, toSection: .allPhotos)
+        
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
     
     // MARK: - Data Fetching
@@ -125,7 +210,7 @@ class GalleryViewController: UIViewController {
                 
                 await MainActor.run {
                     self.photos = fetchedPhotos
-                    self.applySnapshot(animatingDifferences: false)
+                    self.applySnapshot()
                     self.activityIndicator.stopAnimating()
                 }
             } catch {
