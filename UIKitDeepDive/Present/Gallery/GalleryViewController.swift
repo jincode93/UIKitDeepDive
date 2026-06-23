@@ -284,6 +284,11 @@ class GalleryViewController: UIViewController {
 extension GalleryViewController: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard let photo = dataSource.itemIdentifier(for: indexPath) else { return }
-        print("선택된 사진: \(photo.author)")
+        
+        let detailVC = PhotoDetailViewController(photo: photo)
+        detailVC.preferredTransition = .zoom(sourceViewProvider: { _ in
+            collectionView.cellForItem(at: indexPath)
+        })
+        navigationController?.pushViewController(detailVC, animated: true)
     }
 }
