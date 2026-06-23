@@ -9,8 +9,12 @@ import UIKit
 
 class SectionHeaderView: UICollectionReusableView {
     
+    // MARK: - Properties
+    
     static let reuseIdentifier = "SectionHeaderView"
     static let elementKind = "section-header"
+    
+    // MARK: - UI Components
     
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -28,6 +32,8 @@ class SectionHeaderView: UICollectionReusableView {
         return label
     }()
     
+    // MARK: - Init
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -36,6 +42,8 @@ class SectionHeaderView: UICollectionReusableView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    // MARK: - Setup
     
     private func setupUI() {
         let stackView = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel])
@@ -52,6 +60,8 @@ class SectionHeaderView: UICollectionReusableView {
             stackView.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
         ])
     }
+    
+    // MARK: - Configure
     
     func configure(title: String, subtitle: String? = nil) {
         titleLabel.text = title

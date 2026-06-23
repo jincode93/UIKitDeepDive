@@ -126,14 +126,12 @@ class ImagePostCell: UITableViewCell {
         let url = URL(string: "https://loremflickr.com/400/200?lock=\(id)")!
         
         imageLoadTask = Task {
-            do {
-                let data = try await NetworkManager.shared.fetchImage(from: url)
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    self.postImageView.image = UIImage(data: data)
-                }
-            } catch {
-                // 이미지 로딩 실패 시 placeholder 유지
+            let image = await ImageCacheManager.shared.loadImage(from: url)
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                self.postImageView.image = image
             }
         }
     }

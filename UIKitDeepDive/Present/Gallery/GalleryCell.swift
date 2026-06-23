@@ -80,14 +80,20 @@ class GalleyCell: UICollectionViewCell {
         guard let url = photo.imageURL(width: 300, height: 300) else { return }
         
         imageLoadTask = Task {
-            do {
-                let data = try await NetworkManager.shared.fetchImage(from: url)
-                guard !Task.isCancelled else { return }
-                await MainActor.run {
-                    self.imageView.image = UIImage(data: data)
+            let image = await ImageCacheManager.shared.loadImage(from: url)
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                if let image {
+                    UIView.transition(
+                        with: self.imageView,
+                        duration: 0.2,
+                        options: .transitionCrossDissolve
+                    ) {
+                        self.imageView.image = image
+                    }
                 }
-            } catch {
-                // placeholder 유지
             }
         }
     }
