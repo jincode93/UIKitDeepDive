@@ -74,6 +74,11 @@ class GalleryViewController: UIViewController {
     
     private func setupCollectionView() {
         collectionView.register(GalleyCell.self, forCellWithReuseIdentifier: GalleyCell.reuseIdentifier)
+        collectionView.register(
+            SectionHeaderView.self,
+            forSupplementaryViewOfKind: SectionHeaderView.elementKind,
+            withReuseIdentifier: SectionHeaderView.reuseIdentifier
+        )
         collectionView.delegate = self
     }
     
@@ -116,8 +121,8 @@ class GalleryViewController: UIViewController {
         
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 16, trailing: 8)
-        
         section.orthogonalScrollingBehavior = .groupPagingCentered
+        section.boundarySupplementaryItems = [createSectionHeader()]
         
         return section
     }
@@ -138,8 +143,8 @@ class GalleryViewController: UIViewController {
         
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 16, trailing: 8)
-        
         section.orthogonalScrollingBehavior = .continuous
+        section.boundarySupplementaryItems = [createSectionHeader()]
         
         return section
     }
@@ -161,7 +166,27 @@ class GalleryViewController: UIViewController {
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8)
         
+        let header = createSectionHeader()
+        header.pinToVisibleBounds = true
+        header.zIndex = 2
+        
+        section.boundarySupplementaryItems = [header]
+        
         return section
+    }
+    
+    private func createSectionHeader() -> NSCollectionLayoutBoundarySupplementaryItem {
+        let headerSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(1.0),
+            heightDimension: .estimated(44)
+        )
+        let header = NSCollectionLayoutBoundarySupplementaryItem(
+            layoutSize: headerSize,
+            elementKind: SectionHeaderView.elementKind,
+            alignment: .top
+        )
+        
+        return header
     }
     
     // MARK: - Diffable DataSource
@@ -177,6 +202,37 @@ class GalleryViewController: UIViewController {
             
             cell.configure(with: photo)
             return cell
+        }
+        
+        dataSource.supplementaryViewProvider = { [weak self] collectionView, kind, indexPath in
+            guard let self,
+                  kind == SectionHeaderView.elementKind,
+                  let header = collectionView.dequeueReusableSupplementaryView(
+                    ofKind: kind,
+                    withReuseIdentifier: SectionHeaderView.reuseIdentifier,
+                    for: indexPath
+                  ) as? SectionHeaderView else {
+                return UICollectionReusableView()
+            }
+            
+            let section = Section(rawValue: indexPath.section)
+            
+            switch section {
+            case .featured:
+                header.configure(title: "Featured", subtitle: "에디터 추천 사진")
+            case .trending:
+                header.configure(title: "Trending", subtitle: "지금 인기있는 사진")
+            case .allPhotos:
+                header.configure(title: "All Photos")
+            case .none:
+                break
+            }
+            
+            if section == .allPhotos {
+                header.backgroundColor = .systemBackground
+            }
+            
+            return header
         }
     }
     
